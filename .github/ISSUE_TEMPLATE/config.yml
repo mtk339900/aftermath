@@ -6,6 +6,3 @@ contact_links:
   - name: Security issue
     url: https://github.com/mtk339900/aftermath/security/advisories/new
     about: Please report security vulnerabilities privately, not as a public issue.
-  - name: Discussions
-    url: https://github.com/mtk339900/aftermath/discussions
-    about: Ask questions and share ideas.
