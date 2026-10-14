@@ -1,0 +1,28 @@
+[package]
+name = "aftermath-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Evidence model and analysis engine for Aftermath"
+rust-version.workspace = true
+readme = "../README.md"
+repository = "https://github.com/mtk339900/aftermath"
+keywords = ["static-analysis", "impact-analysis", "code-analysis", "developer-tools"]
+categories = ["development-tools"]
+
+[dependencies]
+anyhow.workspace = true
+git2.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+similar.workspace = true
+thiserror.workspace = true
+tree-sitter.workspace = true
+tree-sitter-javascript.workspace = true
+tree-sitter-typescript.workspace = true
+sha2.workspace = true
+toml.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+jsonschema.workspace = true

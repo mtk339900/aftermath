@@ -1,0 +1,28 @@
+[package]
+name = "aftermath-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Aftermath — evidence-driven change analysis: what your change touches, and what you can't see"
+rust-version.workspace = true
+readme = "../README.md"
+repository = "https://github.com/mtk339900/aftermath"
+homepage = "https://github.com/mtk339900/aftermath"
+keywords = ["static-analysis", "impact-analysis", "code-analysis", "git", "developer-tools"]
+categories = ["development-tools", "command-line-utilities"]
+
+[[bin]]
+name = "aftermath"
+path = "src/main.rs"
+
+[dependencies]
+aftermath-core.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+serde_json.workspace = true
+insta.workspace = true

@@ -1,0 +1,12 @@
+# Build artifacts
+/target
+**/*.rs.bk
+
+# Aftermath's own local analysis cache (never commit machine-local state)
+.aftermath/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store

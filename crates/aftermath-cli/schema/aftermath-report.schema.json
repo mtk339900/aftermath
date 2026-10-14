@@ -1,0 +1,276 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://aftermath.dev/schema/report-1.0.0.json",
+  "title": "Aftermath analysis report",
+  "description": "The machine-readable result of one Aftermath analysis run. Every confidence label is a documented class, never a fabricated percentage.",
+  "type": "object",
+  "required": ["schema_version", "reproducibility", "scope", "ledger", "tests", "unknowns", "blind_spots", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0.0" },
+    "reproducibility": { "$ref": "#/definitions/Reproducibility" },
+    "scope": { "$ref": "#/definitions/ChangeScope" },
+    "ledger": { "type": "array", "items": { "$ref": "#/definitions/LedgerEntry" } },
+    "tests": { "type": "array", "items": { "$ref": "#/definitions/TestEvidence" } },
+    "unknowns": { "type": "array", "items": { "$ref": "#/definitions/UnknownItem" } },
+    "blind_spots": { "type": "array", "items": { "$ref": "#/definitions/BlindSpot" } },
+    "history": { "$ref": "#/definitions/HistoryReport" },
+    "summary": { "$ref": "#/definitions/Summary" }
+  },
+  "definitions": {
+    "SymbolKind": {
+      "type": "string",
+      "enum": ["function", "method", "class", "interface", "type", "variable", "module", "symbol"]
+    },
+    "Confidence": {
+      "description": "Documented confidence classes (see docs/EVIDENCE_MODEL.md). Never a numeric probability.",
+      "type": "string",
+      "enum": ["confirmed_relationship", "strongly_supported_impact", "possible_impact", "unknown", "verified_by_executed_test", "not_verified"]
+    },
+    "TestStatus": {
+      "description": "The four valuation states are kept distinct: a tool that did not run tests never reports them as passing.",
+      "type": "string",
+      "enum": ["passed", "failed", "not_executed", "unavailable", "skipped"]
+    },
+    "SymbolRef": {
+      "type": "object",
+      "required": ["file", "name", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string", "description": "Repository-relative path with forward slashes." },
+        "name": { "type": "string" },
+        "kind": { "$ref": "#/definitions/SymbolKind" }
+      }
+    },
+    "EvidenceKind": {
+      "type": "string",
+      "enum": ["git_diff_hunk", "syntax_tree", "call_site", "import_edge", "inheritance_edge", "type_reference", "test_reference", "test_execution", "history_correlation", "name_match", "config_declaration"]
+    },
+    "EvidenceLocation": {
+      "type": "object",
+      "required": ["file", "line"],
+      "properties": {
+        "file": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer" },
+        "snippet": { "type": "string", "description": "Single, trimmed, secret-redacted source excerpt." }
+      }
+    },
+    "Evidence": {
+      "type": "object",
+      "required": ["kind", "location", "detail"],
+      "properties": {
+        "kind": { "$ref": "#/definitions/EvidenceKind" },
+        "location": { "$ref": "#/definitions/EvidenceLocation" },
+        "detail": { "type": "string" }
+      }
+    },
+    "Relationship": {
+      "type": "string",
+      "enum": ["direct_caller", "imports_symbol", "inherits_from", "type_consumer", "transitive", "test_consumer", "uses_symbol"]
+    },
+    "AffectedSymbol": {
+      "type": "object",
+      "required": ["symbol", "relationship", "depth", "confidence", "evidence"],
+      "properties": {
+        "symbol": { "$ref": "#/definitions/SymbolRef" },
+        "relationship": { "$ref": "#/definitions/Relationship" },
+        "depth": { "type": "integer", "minimum": 1 },
+        "confidence": { "$ref": "#/definitions/Confidence" },
+        "evidence": { "type": "array", "items": { "$ref": "#/definitions/Evidence" } },
+        "chain": { "type": "array", "items": { "$ref": "#/definitions/SymbolRef" } }
+      }
+    },
+    "ChangeCategory": { "type": "string", "enum": ["added", "modified", "deleted", "renamed"] },
+    "AnalysisMethod": {
+      "type": "string",
+      "enum": ["syntax_analysis", "import_resolution", "call_site_scan", "bounded_transitive_traversal", "test_discovery", "test_execution", "history_correlation", "name_heuristic"]
+    },
+    "SuggestionRule": {
+      "type": "string",
+      "enum": ["boundary_values", "branch_coverage", "error_path", "signature_change", "multiple_callers", "malformed_input", "public_api_consumer"]
+    },
+    "TestSuggestion": {
+      "description": "A proposal for a test that does not yet exist. Always `executed: false`.",
+      "type": "object",
+      "required": ["id", "title", "rationale", "rule", "executed"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "rationale": { "type": "string" },
+        "rule": { "$ref": "#/definitions/SuggestionRule" },
+        "target_symbol": { "$ref": "#/definitions/SymbolRef" },
+        "suggested_location": { "type": "string" },
+        "evidence": { "type": "array", "items": { "$ref": "#/definitions/Evidence" } },
+        "executed": { "const": false }
+      }
+    },
+    "TestEvidence": {
+      "type": "object",
+      "required": ["id", "file", "status", "evidence"],
+      "properties": {
+        "id": { "type": "string" },
+        "file": { "type": "string" },
+        "symbol": { "$ref": "#/definitions/SymbolRef" },
+        "status": { "$ref": "#/definitions/TestStatus" },
+        "evidence": { "type": "array", "items": { "$ref": "#/definitions/Evidence" } },
+        "note": { "type": "string" }
+      }
+    },
+    "Consent": {
+      "type": "string",
+      "enum": ["explicit", "confirmed", "configured", "not_granted"]
+    },
+    "TestRunRecord": {
+      "description": "Feature H: a record of a test that was actually executed.",
+      "type": "object",
+      "required": ["command", "cwd", "status", "executed_at", "consent"],
+      "properties": {
+        "command": { "type": "array", "items": { "type": "string" }, "description": "argv array — never a shell string." },
+        "cwd": { "type": "string" },
+        "status": { "$ref": "#/definitions/TestStatus" },
+        "exit_code": { "type": "integer" },
+        "executed_at": { "type": "string" },
+        "duration_ms": { "type": "integer" },
+        "summary": { "type": "string" },
+        "consent": { "$ref": "#/definitions/Consent" }
+      }
+    },
+    "LedgerEntry": {
+      "type": "object",
+      "required": ["id", "changed_file", "change_category", "changed_lines", "direct_affected", "transitive_affected", "methods", "confidence", "tests", "unverified", "suggested_next_steps", "suggestions"],
+      "properties": {
+        "id": { "type": "string" },
+        "changed_file": { "type": "string" },
+        "changed_symbol": { "$ref": "#/definitions/SymbolRef" },
+        "change_category": { "$ref": "#/definitions/ChangeCategory" },
+        "changed_lines": { "type": "array", "items": { "type": "integer" } },
+        "direct_affected": { "type": "array", "items": { "$ref": "#/definitions/AffectedSymbol" } },
+        "transitive_affected": { "type": "array", "items": { "$ref": "#/definitions/AffectedSymbol" } },
+        "methods": { "type": "array", "items": { "$ref": "#/definitions/AnalysisMethod" } },
+        "confidence": { "$ref": "#/definitions/Confidence" },
+        "tests": { "type": "array", "items": { "$ref": "#/definitions/TestEvidence" } },
+        "unverified": { "type": "array", "items": { "type": "string" } },
+        "suggested_next_steps": { "type": "array", "items": { "type": "string" } },
+        "suggestions": { "type": "array", "items": { "$ref": "#/definitions/TestSuggestion" } }
+      }
+    },
+    "UnknownKind": {
+      "type": "string",
+      "enum": ["changed_public_symbol_without_identified_test", "unresolved_call_site", "unresolved_import", "dynamic_import", "runtime_dispatch", "changed_interface_without_consumer_info", "test_not_executed", "test_unavailable", "skipped_input"]
+    },
+    "UnknownItem": {
+      "description": "An explicitly reported unknown. Wording separates absence of discovered coverage from proven absence.",
+      "type": "object",
+      "required": ["id", "kind", "summary", "evidence", "next_step"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "$ref": "#/definitions/UnknownKind" },
+        "summary": { "type": "string" },
+        "affected_symbol": { "$ref": "#/definitions/SymbolRef" },
+        "evidence": { "type": "array", "items": { "$ref": "#/definitions/Evidence" } },
+        "next_step": { "type": "string" }
+      }
+    },
+    "BlindSpotKind": {
+      "type": "string",
+      "enum": ["unsupported_language", "parse_errors", "unresolved_import", "dynamic_dispatch", "generated_code", "ignored_directory", "oversized_file", "binary_file", "missing_language_config", "incomplete_symbol_resolution"]
+    },
+    "BlindSpot": {
+      "type": "object",
+      "required": ["id", "kind", "reason", "impact"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "$ref": "#/definitions/BlindSpotKind" },
+        "file": { "type": "string" },
+        "reason": { "type": "string" },
+        "impact": { "type": "string" }
+      }
+    },
+    "LanguageSupportNote": {
+      "type": "object",
+      "required": ["language", "extensions", "supported", "limitations"],
+      "properties": {
+        "language": { "type": "string" },
+        "extensions": { "type": "array", "items": { "type": "string" } },
+        "supported": { "type": "array", "items": { "type": "string" } },
+        "limitations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "Reproducibility": {
+      "type": "object",
+      "required": ["aftermath_version", "schema_version", "repository_dirty", "config", "language_support", "generated_at", "commands_executed", "test_runs"],
+      "properties": {
+        "aftermath_version": { "type": "string" },
+        "schema_version": { "type": "string" },
+        "repository_revision": { "type": "string" },
+        "repository_dirty": { "type": "boolean" },
+        "config": { "type": "object" },
+        "language_support": { "type": "array", "items": { "$ref": "#/definitions/LanguageSupportNote" } },
+        "generated_at": { "type": "string", "description": "RFC 3339; the only intentionally varying field." },
+        "commands_executed": { "type": "array", "items": { "type": "array", "items": { "type": "string" } } },
+        "test_runs": { "type": "array", "items": { "$ref": "#/definitions/TestRunRecord" } }
+      }
+    },
+    "ChangeScope": {
+      "type": "object",
+      "required": ["mode", "changed_files"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["worktree", "staged", "revision"] },
+        "revision": { "type": "string" },
+        "changed_files": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "HistoryCommit": {
+      "type": "object",
+      "required": ["id", "subject", "files"],
+      "properties": {
+        "id": { "type": "string" },
+        "subject": { "type": "string" },
+        "files": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "CoChange": {
+      "type": "object",
+      "required": ["file", "files", "shared_commits"],
+      "properties": {
+        "file": { "type": "string" },
+        "files": { "type": "array", "items": { "type": "string" } },
+        "shared_commits": { "type": "integer" }
+      }
+    },
+    "HistoryReport": {
+      "description": "Optional history analysis. Always labeled as correlation, never proof.",
+      "type": "object",
+      "required": ["commits_examined", "truncated", "co_changes", "relevant_commits", "disclaimer"],
+      "properties": {
+        "commits_examined": { "type": "integer" },
+        "truncated": { "type": "boolean" },
+        "co_changes": { "type": "array", "items": { "$ref": "#/definitions/CoChange" } },
+        "relevant_commits": { "type": "array", "items": { "$ref": "#/definitions/HistoryCommit" } },
+        "disclaimer": { "type": "string" }
+      }
+    },
+    "Summary": {
+      "type": "object",
+      "required": ["changed_files", "ledger_entries", "direct_affected", "transitive_affected", "unknowns", "blind_spots", "tests_identified", "tests_passed", "tests_failed", "tests_not_executed", "tests_unavailable", "suggestions", "confirmed_entries", "possible_entries", "unknown_entries"],
+      "properties": {
+        "changed_files": { "type": "integer" },
+        "ledger_entries": { "type": "integer" },
+        "direct_affected": { "type": "integer" },
+        "transitive_affected": { "type": "integer" },
+        "unknowns": { "type": "integer" },
+        "blind_spots": { "type": "integer" },
+        "tests_identified": { "type": "integer" },
+        "tests_passed": { "type": "integer" },
+        "tests_failed": { "type": "integer" },
+        "tests_not_executed": { "type": "integer" },
+        "tests_unavailable": { "type": "integer" },
+        "suggestions": { "type": "integer" },
+        "confirmed_entries": { "type": "integer" },
+        "possible_entries": { "type": "integer" },
+        "unknown_entries": { "type": "integer" }
+      }
+    }
+  }
+}
