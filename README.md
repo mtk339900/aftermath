@@ -86,10 +86,15 @@ Notice what is *not* there: no percentage, no "98% confidence you're safe". It s
 ## 30-second demo
 
 <p align="center">
-  <video src="media/aftermath-intro.mp4" poster="docs/assets/aftermath-social-preview.png" width="100%" style="border-radius:16px" controls muted loop playsinline></video>
+  <a href="media/aftermath-intro.mp4" title="Watch the Aftermath intro (40s, muted)">
+    <img alt="Aftermath demo — click to watch" src="docs/assets/aftermath-social-preview.png" width="720">
+  </a>
 </p>
 
-<p align="center"><em>No audio. The deck is authored in HTML (<a href="media/intro.html">media/intro.html</a>) and rendered to <a href="media/aftermath-intro.mp4">media/aftermath-intro.mp4</a>.</em></p>
+<p align="center">
+  <a href="media/aftermath-intro.mp4">▶ Watch the 40-second intro (MP4)</a> ·
+  authored in HTML (<a href="media/intro.html">media/intro.html</a>), no audio.
+</p>
 
 ## How it works
 
